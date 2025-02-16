@@ -23,7 +23,7 @@ class AESModel(nn.Module):
             param.requires_grad = False
 
         # LLM 실치 hidden_size=3200과 동일하게 설정
-        self.linear = nn.Linear(hidden_size, num_scores, dtype=torch.float16)
+        self.linear = nn.Linear(hidden_size, num_scores)
 
     def forward(self, input_ids, attention_mask):
         outputs = self.backbone(
