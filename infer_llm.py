@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 from modules.essay_scoring_model import AESModel
-from modules.essay_dataset import EssayDataset  # (단순 참조: 토크나이징 로직 참고)
 from transformers import AutoTokenizer
+from torch.amp import autocast
 
 def load_trained_aes_model(
     model_name="Bllossom/llama-3.2-Korean-Bllossom-3B",
@@ -18,9 +18,9 @@ def load_trained_aes_model(
         model_name_or_path=model_name, 
         hidden_size=hidden_size, 
         num_scores=num_scores
-    )
+    ).cuda()
     # 2) 저장된 linear 가중치 불러오기
-    state_dict = torch.load(checkpoint_path, map_location="cpu")
+    state_dict = torch.load(checkpoint_path)
     model.linear.load_state_dict(state_dict)
     print(f"Loaded linear layer weights from {checkpoint_path}")
 
@@ -45,8 +45,10 @@ def inference_essay(model, tokenizer, text, max_length=512):
     attention_mask = encoding["attention_mask"]
 
     # 2) 모델 추론
+    
     with torch.no_grad():
-        preds = model(input_ids, attention_mask)  # (1, num_scores)
+        with autocast(device_type='cuda'):
+            preds = model(input_ids.cuda(), attention_mask.cuda())  # (1, num_scores)
     
     # 텐서를 파이썬 리스트나 numpy 등으로 변환
     scores = preds.squeeze(0).tolist()
